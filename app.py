@@ -23,7 +23,7 @@ logger.setLevel(logging.INFO)
 client = boto3.client('polly')
 
 # リプライ用URL
-url = 'https://api.line.me/v2/bot/message/reply'
+reply_url = 'https://api.line.me/v2/bot/message/reply'
 # トークン
 token = os.getenv("LINE_TOKEN")
 # リクエストヘッダ
@@ -57,7 +57,7 @@ def sent_message(event, text):
                 }
             ]
     }
-    req = requests.post(url, json=body, headers=headers)
+    req = requests.post(reply_url, json=body, headers=headers)
     logger.info(req.text)
 
 
@@ -83,6 +83,7 @@ def text_to_speech(event):
     if charnum > 200:
         error_txt = "テキストが長すぎます。200文字以内でお願いします。"
         sent_message(event, error_txt)
+        return
 
     response = client.synthesize_speech(
         OutputFormat='mp3',
@@ -91,31 +92,28 @@ def text_to_speech(event):
         VoiceId='Mizuki'
     )
     logger.info(response)
-    path_mp3 = '/tmp/' + event['message']['id'] + '.mp3'
-    with open(path_mp3, "wb") as f:
+    mp3_path = '/tmp/' + event['message']['id'] + '.mp3'
+    with open(mp3_path, "wb") as f:
         logger.info("Start Writing")
         with closing(response["AudioStream"]) as stream:
             f.write(stream.read())
-            logger.info(os.path.exists(path_mp3))
 
     m4a_name = event['message']['id'] + '.m4a'
-    tmp_m4a = '/tmp/' + m4a_name
+    m4a_path = '/tmp/' + m4a_name
 
     # ffmpeg実行
-    ffmpeg_cmd = './ffmpeg_build/bin/ffmpeg -i %s %s' % (path_mp3, tmp_m4a)
+    ffmpeg_cmd = './ffmpeg_build/bin/ffmpeg -i %s %s' % (mp3_path, m4a_path)
     subprocess.call(ffmpeg_cmd, shell=True)
 
-    mp3_name = event['message']['id'] + '.mp3'
-    put_s3_object("synthesize-speech-rt1", mp3_name, path_mp3)
-    put_s3_object("synthesize-speech-rt1", m4a_name, tmp_m4a)
-    os.remove(path_mp3)
-    os.remove(tmp_m4a)
+    put_s3_object("synthesize-speech-rt1", m4a_name, m4a_path)
+    os.remove(mp3_path)
+    os.remove(m4a_path)
 
     # LINE 投稿
     speech_url = ("https://s3-ap-northeast-1.amazonaws.com/"
                   + "synthesize-speech-rt1/" + m4a_name)
+    # URLを短縮
     shoot_url = shorten_url(speech_url)
-    logger.info(shoot_url)
     req_json = {
         'replyToken': event['replyToken'],
         'messages': [
@@ -126,7 +124,7 @@ def text_to_speech(event):
             }
         ]
     }
-    req = requests.post(url, json=req_json, headers=headers)
+    req = requests.post(reply_url, json=req_json, headers=headers)
     logger.info(req.text)
 
 
@@ -148,7 +146,6 @@ def lambda_handler(request, context):
 
     # for event in request['events']:
     for event in json.loads(body).get('events', []):
-        logger.info(json.dumps(request))
         logger.info(json.dumps(event))
         msg_type = event['message']['type']
         if msg_type == "text":
