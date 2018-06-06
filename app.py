@@ -105,13 +105,14 @@ def text_to_speech(event):
     ffmpeg_cmd = './ffmpeg_build/bin/ffmpeg -i %s %s' % (mp3_path, m4a_path)
     subprocess.call(ffmpeg_cmd, shell=True)
 
-    put_s3_object("synthesize-speech-rt1", m4a_name, m4a_path)
+    s3_bucket_name = os.getenv["S3_BUCKET_NAME"]
+    put_s3_object(s3_bucket_name, m4a_name, m4a_path)
     os.remove(mp3_path)
     os.remove(m4a_path)
 
     # LINE 投稿
-    speech_url = ("https://s3-ap-northeast-1.amazonaws.com/"
-                  + "synthesize-speech-rt1/" + m4a_name)
+    speech_url = ("https://s3-ap-northeast-1.amazonaws.com/%s/%s" %
+                  (s3_bucket_name, m4a_name))
     # URLを短縮
     shoot_url = shorten_url(speech_url)
     req_json = {
