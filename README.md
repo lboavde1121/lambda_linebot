@@ -1,4 +1,20 @@
-#
+# テキスト読み上げLINEBOT
 
-// TODO README詳細化
-ffmpegをビルドしてディレクトリ内に含め、zip化してLambdaにアップロードします。
+<img src="http://qr-official.line.me/L/OIoaB_FTXr.png">
+
+```
+rm .env_sample .env
+```
+
+ファイルの中身を書き換えてください。
+```.env
+BITLY_TOKEN=[bitlyのトークンを記載]
+CHANNNEL_SERCRET=[Lineのチャンネルシークレットキー記載]
+LINE_TOKEN=[Lineトークン記載]
+```
+
+
+
+ffmpegをDocker(AmazonLinuxImage)を使用してビルド  
+ディレクトリ内に含め、zip化  
+Lambdaにアップロード(S3からアップロード)
