@@ -3,7 +3,7 @@
 <img src="http://qr-official.line.me/L/OIoaB_FTXr.png">
 
 ```
-rm .env_sample .env
+mv .env_sample .env
 ```
 
 ファイルの中身を書き換えてください。
